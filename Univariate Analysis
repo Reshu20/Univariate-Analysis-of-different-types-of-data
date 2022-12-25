@@ -1,0 +1,348 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[6]:
+
+
+import pandas as pd
+data=pd.read_csv('C:\\Users\\Reshu Choubey\\Desktop\\reshu DS\\GL\\Project 1\\ml-100k\\u.data',sep='\t',names=['UserID', 'ItemID', 'rating', 'Timestamp'])
+data
+
+
+# In[11]:
+
+
+data.shape
+data.head()
+
+
+# In[17]:
+
+
+rat=pd.Series(['ratings'])
+print(rat)
+data.info()
+
+
+# In[21]:
+
+
+data.isna().apply(pd.value_counts)
+
+
+# In[32]:
+
+
+get_ipython().run_line_magic('matplotlib', 'inline')
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+# # Display univariate plots of the attributes: 'rating', 'age', 'release date', 'gender' and 'occupation', from their respective data frames
+
+# In[39]:
+
+
+# Create a list of column names by copy pasting from the Readme file and read the u.item file by passing the list 'col_n'
+col_n = ['movie id' , 'movie title' , 'release date' , 'video release date' ,
+              'IMDb URL' , 'unknown' , 'Action' , 'Adventure' , 'Animation' ,
+              "Children's" , 'Comedy' , 'Crime' , 'Documentary' , 'Drama' , 'Fantasy' ,
+              'Film-Noir' , 'Horror' , 'Musical' , 'Mystery' , 'Romance' , 'Sci-Fi' ,
+              'Thriller' , 'War' , 'Western']
+
+
+movies = pd.read_csv('C:\\Users\\Reshu Choubey\\Desktop\\reshu DS\\GL\\Project 1\\ml-100k\\u.item', 
+                       sep = '|',encoding = 'latin-1',names=col_n )
+print(movies.shape)
+movies.head()
+
+
+# In[40]:
+
+
+movies.info()
+
+
+# In[41]:
+
+
+# Dropping irrelevant columns
+movies.drop(columns= ['video release date', 'IMDb URL'], inplace=True)  #drop unnecessary columns 
+
+
+# In[42]:
+
+
+# looking at the counts of individual genres
+l = []
+for i in movies.loc[:,'unknown' : 'Western'].columns:
+    b = movies[i].value_counts()[1]
+    l.append(b)
+print(l)
+print(movies.loc[:,'unknown' : 'Western'].columns)
+
+
+# In[43]:
+
+
+#the unknown column has only 2 entries. let's look at them
+movies[movies['unknown']== 1]
+
+
+# In[45]:
+
+
+#let's see if there is information about the movieid 1373
+data[data.ItemID == 1373]
+
+
+# In[46]:
+
+
+# Since there is unknown column doesnt have a lot of info and the only movie associated with it was rated only once
+movies.drop(movies[movies['unknown'] == 1].index, axis=0, inplace=True)
+movies.drop(columns= 'unknown',inplace=True)
+
+
+# In[47]:
+
+
+movies.isna().apply(pd.value_counts)  #missing value check
+
+
+# In[48]:
+
+
+print(movies.shape)
+movies.head()
+
+
+# In[50]:
+
+
+# read the u.user data and name the columns as per the Readme document in the folder
+users = pd.read_csv('C:\\Users\\Reshu Choubey\\Desktop\\reshu DS\\GL\\Project 1\\ml-100k\\u.user',
+                    sep = '|', names= ['UserID',  'Age', 'Gender', 'Occupation','Zip-code'])
+print(users.shape)
+users.head()
+
+
+# In[64]:
+
+
+users.isna().apply(pd.value_counts) #missing value check
+users
+
+
+# # Univariate plots of columns: 'rating', 'Age', 'release date', 'Gender' and 'Occupation
+
+# In[53]:
+
+
+# Bar chart to view distribution of ratings accross all movies
+x = data.rating.value_counts().index    #Values for x-axis
+y = [data['rating'].value_counts()[i]/1000 for i in x]   #count(in thousands) on y-axis 
+
+
+plt.bar(x,y, align='center',color = 'lightblue',edgecolor = 'black', alpha = 0.7)  #plot a bar chart
+plt.xlabel('Stars')
+plt.ylabel('Count (in thousands)')
+plt.title('Rating')
+
+plt.show()
+
+
+# In[59]:
+
+
+# Distribution of age 
+sns.set()    #setting seaborn style to default
+sns.distplot(users.Age)
+plt.show()
+
+
+# In[60]:
+
+
+# Distribution of movies w.r.t release year
+movies['release_year'] = movies['release date'].str.split('-', expand = True)[2]  #seperating out the year from the date
+movies['release_year'] = movies.release_year.astype(int)  # changing the type to int
+plt.figure(figsize=(20,6))    #increasing the figure size
+sns.distplot(movies.release_year)
+plt.show()
+
+
+# In[63]:
+
+
+#Gender distribution
+sns.countplot(users.Gender, palette=['lightblue','pink'])
+plt.show()
+
+
+# In[62]:
+
+
+#Distribution of users w.r.t population
+
+plt.figure(figsize=(15,6))
+
+sns.countplot(users.Occupation, color= 'lightblue')
+plt.yticks(rotation=0)
+plt.xticks(rotation=90)
+plt.show()
+
+
+# # Visualize how popularity of genres has changed over the years
+
+# In[65]:
+
+
+genre_by_year = movies.groupby('release_year').sum()
+genre_by_year = genre_by_year.drop(columns = 'movie id').T
+genre_by_year
+
+
+# In[66]:
+
+
+plt.figure(figsize=(20,7))  #setting the figure size
+sns.heatmap(genre_by_year, cmap='YlGnBu')  #heat map to plot the above table
+plt.show()
+
+
+# # Find the top 25 movies, each having a minimum of 100 ratings¶
+
+# In[72]:
+
+
+items = data.groupby('ItemID').count()
+
+items = items[data.groupby('ItemID').count().UserID > 100].index
+
+items = data.loc[data.ItemID.isin(items)]
+
+items = items.groupby('ItemID').mean()
+
+items = items.sort_values('rating',ascending = False)
+
+order = items.index
+
+
+# In[73]:
+
+
+rating_list = items.rating[0:25]
+
+
+# In[74]:
+
+
+items = movies.loc[movies['movie id'].isin(order)]
+
+
+# In[75]:
+
+
+top_25_movies = items.set_index('movie id').loc[order]
+
+top_25_movies = top_25_movies.iloc[0:25, 0]
+
+
+# In[76]:
+
+
+top_25_movies = top_25_movies.reset_index()
+
+
+# In[77]:
+
+
+top_25_movies['avg_rating'] =  rating_list.values
+
+
+# In[78]:
+
+
+top_25_movies
+
+
+# # See gender distribution accross different genres
+# Verify the following:
+# 
+# Men watch more drama than women
+# Women watch more Sci-Fi than men
+
+# In[79]:
+
+
+movies.columns  # columns of movies dataframe
+
+
+# In[80]:
+
+
+users.columns   #columns of users dataframe
+
+
+# In[81]:
+
+
+data.columns  # columns of ratings dataframe
+
+
+# In[83]:
+
+
+result = pd.merge(data, users, how='inner', on='UserID')  #merging dataframes with UserID as the key
+
+
+# In[84]:
+
+
+movies.rename(columns= {'movie id' : 'ItemID'}, inplace= True)
+#Renaming the column to have the same column name so that we can perform join operation
+
+
+# In[85]:
+
+
+result = pd.merge(result, movies, how='inner', on='ItemID')  # merging dataframes with ItemID as the key
+
+
+# In[86]:
+
+
+result.head() 
+
+
+# In[87]:
+
+
+Genre_by_gender = result.groupby('Gender').sum().loc[:,'Action':'Western']  #Group by gender and aggregate with sum and select all the genre columns 
+
+
+# In[88]:
+
+
+Genre_by_gender['total'] = Genre_by_gender.sum(axis = 1)  #Row total of the dataframe
+
+
+# In[89]:
+
+
+Genre_by_gender
+
+
+# In[90]:
+
+
+Genre_by_gender.div(Genre_by_gender.total, axis= 0) * 100  #dividing each cell with row total and multiplying by 100
+
+
+# Conclusion:
+# 
+# Of all the women, 20% watched Drama and of all the men, 18% watched Drama
+# Of all the women, 4.8% watched Sci-Fi and of all the men, 6.3% watched Sci-Fi
+
+# Answer: All the statements were false.
